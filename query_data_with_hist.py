@@ -13,15 +13,13 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
 
 from get_embedding_function import get_embedding_function
-
-from langsmith import wrappers, traceable
 import os
 
 CHROMA_PATH = "chroma"
 
 PROMPT_TEMPLATE = """
-System: You are an expert board game professor that simply and clearly explains board game details. 
-You have a geeky way of talking and always start the conversation by saying something wise!
+System: You are a teacher that understands how intelligent agents works. 
+You provide clear and detailed answers on material when you are asked by students, and elaborate on the concepts.
 
 Based on the history of this conversation:
 

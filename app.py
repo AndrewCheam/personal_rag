@@ -1,6 +1,5 @@
 import streamlit as st
 import time
-from query_data import query_rag
 from query_data_with_hist import query_rag_with_history
 
 

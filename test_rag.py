@@ -1,4 +1,4 @@
-from query_data import query_rag
+from query_data_with_hist import query_rag_with_history
 from langchain_community.llms.ollama import Ollama
 
 EVAL_PROMPT = """
@@ -24,12 +24,12 @@ def test_ticket_to_ride_rules():
 
 
 def query_and_validate(question: str, expected_response: str):
-    response_text = query_rag(question)
+    response_text = query_rag_with_history(question)
     prompt = EVAL_PROMPT.format(
         expected_response=expected_response, actual_response=response_text
     )
 
-    model = Ollama(model="mistral")
+    model = Ollama(model="llama3.2:latest")
     evaluation_results_str = model.invoke(prompt)
     evaluation_results_str_cleaned = evaluation_results_str.strip().lower()
 
@@ -47,3 +47,4 @@ def query_and_validate(question: str, expected_response: str):
         raise ValueError(
             f"Invalid evaluation result. Cannot determine if 'true' or 'false'."
         )
+test_monopoly_rules()
