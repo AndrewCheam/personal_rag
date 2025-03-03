@@ -8,20 +8,28 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 
 import argparse
-from langchain_community.vectorstores import Chroma
+# from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
-from langchain_community.llms.ollama import Ollama
+
+from langchain_ollama import OllamaLLM
 
 from get_embedding_function import get_embedding_function
+
 import os
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
+os.environ["LANGSMITH_API_KEY"] = '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'
+os.environ["LANGSMITH_PROJECT"] = "ETS_monthly_example"
 
 CHROMA_PATH = "chroma"
 
 PROMPT_TEMPLATE = """
 System: You are a teacher that understands how intelligent agents works. 
 You provide clear and detailed answers on material when you are asked by students, and elaborate on the concepts.
+If there is an existing conversation, you may take it as context
 
-Based on the history of this conversation:
+History of this conversation:
 
 {history}
 
@@ -33,8 +41,6 @@ Answer the question based only on the following context:
 
 Answer the question based on the above context: {question}
 """
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_API_KEY"] = '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'
 
 class InMemoryHistory(BaseChatMessageHistory, BaseModel):
     """In memory implementation of chat message history."""
@@ -65,6 +71,13 @@ def main():
     query_text = args.query_text
     query_rag_with_history(query_text)
 
+def clean_response(response_text):
+    start = response_text.find("<think>")
+    end = response_text.find("</think>") + len("</think>")
+    if start != -1 and end != -1:
+        response_text = response_text[:start] + response_text[end:]
+    return response_text.strip()
+
 
 def query_rag_with_history(query_text: str):
     # Prepare the DB.
@@ -72,13 +85,15 @@ def query_rag_with_history(query_text: str):
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
 
     # Search the DB.
-    results = db.similarity_search_with_score(query_text, k=5)
+    results = db.similarity_search_with_score(query_text, k=3)
 
     context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     # prompt = prompt_template.format(context=context_text, question=query_text)
     
-    model = Ollama(model="llama3.2:latest")
+    model = OllamaLLM(model="deepseek-r1:7b")
+    # model = OllamaLLM(model="llama3.2:latest")
+    
     chain = prompt_template | model
 
     chain_with_history = RunnableWithMessageHistory(
@@ -100,7 +115,8 @@ def query_rag_with_history(query_text: str):
     print(formatted_response)
 
     print(store)
-    return response_text
+    cleaned_response_text = clean_response(response_text)
+    return cleaned_response_text
 
 if __name__ == "__main__":
     main()
